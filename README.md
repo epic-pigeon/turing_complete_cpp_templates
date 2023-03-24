@@ -16,5 +16,5 @@ Features:
 
 Limitations:
  - variable and function names are ints, can be improved with constants
- - default max template recursion depth is 1024, can be increased
+ - the default compiler's max template recursion depth is 1024, can be increased with flags
  - awkward syntax
