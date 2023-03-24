@@ -1,4 +1,4 @@
-Are you tired of the C++'s mile-long convoluted error messages?
+Are you tired of C++'s mile-long convoluted error messages?
 Are you in constant fear of accidentally triggering undefined behavior?
 Do you want to stop being abused by the compiler?
 
