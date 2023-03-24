@@ -2,7 +2,7 @@
 #include "templates.h"
 #include "int.h"
 
-typedef Fun<0, Ternary<
+typedef Fun<0, If<
         IntCmpLe<Var<0>, Int<1>>,
         Int<1>,
         IntMul<

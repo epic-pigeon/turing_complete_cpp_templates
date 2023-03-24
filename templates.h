@@ -85,7 +85,7 @@ struct Eval<Call<fun_name, args...>, Context<var_list, fun_list>> {
 
 template<typename value, typename context> struct EvalCond {};
 
-template<typename cond, typename if_true, typename if_false> struct Ternary {};
+template<typename cond, typename if_true, typename if_false> struct If {};
 
 template<bool cond, typename if_true, typename if_false> struct TernaryHelper {};
 template<typename if_true, typename if_false> struct TernaryHelper<true, if_true, if_false> {
@@ -96,7 +96,7 @@ template<typename if_true, typename if_false> struct TernaryHelper<false, if_tru
 };
 
 template<typename cond, typename if_true, typename if_false, typename context>
-struct Eval<Ternary<cond, if_true, if_false>, context> {
+struct Eval<If<cond, if_true, if_false>, context> {
     typedef typename Eval<typename TernaryHelper<EvalCond<cond, context>::value, if_true, if_false>::value, context>::value value;
 };
 
