@@ -25,7 +25,8 @@ private: \
     typedef typename Eval<right, context>::value right_val; \
 public: \
     typedef Int<(ConvertToRuntimeValue<left_val>::value OP ConvertToRuntimeValue<right_val>::value)> value; \
-};
+};                          \
+template<typename left, typename right> NAME<left, right> operator OP(left l, right r) { return {}; }
 
 #define DEFINE_COND_OP(NAME, OP) \
 template<typename left, typename right> struct NAME {}; \
@@ -36,7 +37,8 @@ private: \
     typedef typename Eval<right, context>::value right_val; \
 public: \
     static constexpr bool value = ConvertToRuntimeValue<left_val>::value OP ConvertToRuntimeValue<right_val>::value; \
-};
+}; \
+template<typename left, typename right> NAME<left, right> operator OP(left l, right r) { return {}; }
 
 DEFINE_OP(IntAdd, +)
 DEFINE_OP(IntSub, -)
@@ -47,5 +49,7 @@ DEFINE_COND_OP(IntCmpLe, <=)
 DEFINE_COND_OP(IntCmpE, ==)
 DEFINE_COND_OP(IntCmpG, >)
 DEFINE_COND_OP(IntCmpGe, >=)
+
+#define int_const(v) Int<v>()
 
 #endif //TEMPLATES_INT_H

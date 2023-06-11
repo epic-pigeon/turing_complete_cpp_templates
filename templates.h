@@ -1,13 +1,20 @@
 #ifndef TEMPLATES_H
 #define TEMPLATES_H
+#include <type_traits>
 
 typedef const int name_t;
 
-struct End {};
 template<name_t var_name, typename var_value> struct VarD {};
 template<typename ...vars> struct VarList {};
 template<name_t fun_name, typename fun_value> struct Fun {};
 template<typename ...vars> struct FunList {};
+
+#define __decltype_start std::remove_cv<decltype(
+#define __decltype_end )>::type
+#define __decltype(v) __decltype_start v __decltype_end
+
+#define fun(n) Fun<n, __decltype_start
+#define endfun __decltype_end>
 
 
 template<typename var_list, typename fun_list> struct Context {};
@@ -31,14 +38,17 @@ struct FindFun<Context<var_list, FunList<Fun<fun_name, fun_value>, fun_list...>>
     typedef fun_value value;
 };
 
-template<typename fun, typename var_list, typename ...fun_list, name_t var_name>
-struct FindFun<Context<var_list, FunList<fun, fun_list...>>, var_name> {
-    typedef typename FindVar<Context<var_list, FunList<fun_list...>>, var_name>::value value;
+template<typename fun, typename var_list, typename ...fun_list, name_t fun_name>
+struct FindFun<Context<var_list, FunList<fun, fun_list...>>, fun_name> {
+    typedef typename FindFun<Context<var_list, FunList<fun_list...>>, fun_name>::value value;
 };
 
 template<typename value, typename context> struct Eval {};
 
+#define eval(v, ctx) Eval<__decltype(v), ctx>::value()
+
 template<name_t var_name> struct Var {};
+#define var(a) Var<a>()
 
 template<name_t var_name, typename ctx_var_value, typename ...ctx_var_rest, typename ctx_fun>
 struct Eval<Var<var_name>, Context<VarList<VarD<var_name, ctx_var_value>, ctx_var_rest...>, ctx_fun>> {
@@ -51,6 +61,11 @@ struct Eval<Var<var_name>, Context<VarList<vard, ctx_var_rest...>, ctx_fun>> {
 };
 
 template<name_t var_name, typename var_value, typename value> struct LetIn {};
+
+#define let LetIn<
+#define in ), __decltype_start
+#define be , __decltype_start
+#define end __decltype_end>()
 
 template<name_t var_name, typename var_value, typename _value, typename ...ctx_var, typename ctx_fun>
 struct Eval<LetIn<var_name, var_value, _value>, Context<VarList<ctx_var...>, ctx_fun>> {
@@ -66,6 +81,9 @@ struct Eval<LetIn<var_name, var_value, _value>, Context<VarList<ctx_var...>, ctx
 };
 
 template<name_t fun_name, typename ...args> struct Call {};
+
+template <name_t f, typename ...Args> Call<f, Args...> call(Args... args);
+
 template<typename context, typename prev, int count, typename ...args> struct CallVarList {};
 template<typename context, typename prev, int count> struct CallVarList<context, prev, count> {
     typedef prev list;
@@ -95,6 +113,10 @@ template<typename if_true, typename if_false> struct TernaryHelper<false, if_tru
     typedef if_false value;
 };
 
+#define if_(cond) If<__decltype(cond), __decltype_start
+#define else_ __decltype_end, __decltype_start
+
+
 template<typename cond, typename if_true, typename if_false, typename context>
 struct Eval<If<cond, if_true, if_false>, context> {
     typedef typename Eval<typename TernaryHelper<EvalCond<cond, context>::value, if_true, if_false>::value, context>::value value;
@@ -102,5 +124,8 @@ struct Eval<If<cond, if_true, if_false>, context> {
 
 template<typename val>
 struct ConvertToRuntimeValue {};
+
+#define get_runtime(v) ConvertToRuntimeValue<__decltype(v)>::value
+
 
 #endif //TEMPLATES_H

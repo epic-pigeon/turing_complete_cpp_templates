@@ -1,21 +1,26 @@
 #include <iostream>
 #include "templates.h"
 #include "int.h"
+#include "list.h"
 
-typedef Fun<0, If<
-        IntCmpLe<Var<0>, Int<1>>,
-        Int<1>,
-        IntMul<
-                Call<0, IntSub<Var<0>, Int<1>>>,
-                Var<0>
-        >
->> factorial_fun; // define function
+#define factorial_fun 0
+#define n var(0)
 
-typedef Context<End, FunList<factorial_fun, End>> ctx; // define context
+typedef fun(0)
+    if_(n <= int_const(0))
+        int_const(1)
+    else_
+        n * call<factorial_fun>(n - int_const(1))
+    end
+endfun factorial_fun_t;
 
-typedef Eval<Call<0, Int<10>>, ctx>::value res; // calculate result
+#undef n
+
+typedef Context<VarList<>, FunList<factorial_fun_t>> ctx; // define context
+
+constexpr auto res = eval(call<factorial_fun>(int_const(10)), ctx);
 
 int main() {
-    std::cout << ConvertToRuntimeValue<res>::value << std::endl;
+    std::cout << get_runtime(res) << std::endl;
     return 0;
 }
