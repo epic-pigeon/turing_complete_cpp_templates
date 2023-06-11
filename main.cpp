@@ -3,22 +3,17 @@
 #include "int.h"
 #include "list.h"
 
-#define factorial_fun 0
-#define n var(0)
+def_var(it_count, ic(10))
 
-typedef fun(0)
-    if_(n <= int_const(0))
-        int_const(1)
+def_fun(factorial, x)
+    if_(x <= ic(0))
+        ic(1)
     else_
-        n * call<factorial_fun>(n - int_const(1))
+        x * factorial(x - ic(1))
     end
-endfun factorial_fun_t;
+end_fun
 
-#undef n
-
-typedef Context<VarList<>, FunList<factorial_fun_t>> ctx; // define context
-
-constexpr auto res = eval(call<factorial_fun>(int_const(10)), ctx);
+constexpr auto res = factorial(it_count);
 
 int main() {
     std::cout << get_runtime(res) << std::endl;

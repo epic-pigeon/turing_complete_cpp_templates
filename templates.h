@@ -2,106 +2,9 @@
 #define TEMPLATES_H
 #include <type_traits>
 
-typedef const int name_t;
+template<typename value> struct Eval {};
+template<typename value> struct EvalCond {};
 
-template<name_t var_name, typename var_value> struct VarD {};
-template<typename ...vars> struct VarList {};
-template<name_t fun_name, typename fun_value> struct Fun {};
-template<typename ...vars> struct FunList {};
-
-#define __decltype_start std::remove_cv<decltype(
-#define __decltype_end )>::type
-#define __decltype(v) __decltype_start v __decltype_end
-
-#define fun(n) Fun<n, __decltype_start
-#define endfun __decltype_end>
-
-
-template<typename var_list, typename fun_list> struct Context {};
-
-template<typename context, name_t var_name> struct FindVar {};
-
-template<typename var_value, typename ...var_list, typename fun_list, name_t var_name>
-struct FindVar<Context<VarList<VarD<var_name, var_value>, var_list...>, fun_list>, var_name> {
-    typedef var_value value;
-};
-
-template<typename var, typename ...var_list, typename fun_list, name_t var_name>
-struct FindVar<Context<VarList<var, var_list...>, fun_list>, var_name> {
-    typedef typename FindVar<Context<VarList<var_list...>, fun_list>, var_name>::value value;
-};
-
-template<typename context, name_t fun_name> struct FindFun {};
-
-template<typename fun_value, typename var_list, typename ...fun_list, name_t fun_name>
-struct FindFun<Context<var_list, FunList<Fun<fun_name, fun_value>, fun_list...>>, fun_name> {
-    typedef fun_value value;
-};
-
-template<typename fun, typename var_list, typename ...fun_list, name_t fun_name>
-struct FindFun<Context<var_list, FunList<fun, fun_list...>>, fun_name> {
-    typedef typename FindFun<Context<var_list, FunList<fun_list...>>, fun_name>::value value;
-};
-
-template<typename value, typename context> struct Eval {};
-
-#define eval(v, ctx) Eval<__decltype(v), ctx>::value()
-
-template<name_t var_name> struct Var {};
-#define var(a) Var<a>()
-
-template<name_t var_name, typename ctx_var_value, typename ...ctx_var_rest, typename ctx_fun>
-struct Eval<Var<var_name>, Context<VarList<VarD<var_name, ctx_var_value>, ctx_var_rest...>, ctx_fun>> {
-    typedef ctx_var_value value;
-};
-
-template<name_t var_name, typename vard, typename ...ctx_var_rest, typename ctx_fun>
-struct Eval<Var<var_name>, Context<VarList<vard, ctx_var_rest...>, ctx_fun>> {
-    typedef typename Eval<Var<var_name>, Context<VarList<ctx_var_rest...>, ctx_fun>>::value value;
-};
-
-template<name_t var_name, typename var_value, typename value> struct LetIn {};
-
-#define let LetIn<
-#define in ), __decltype_start
-#define be , __decltype_start
-#define end __decltype_end>()
-
-template<name_t var_name, typename var_value, typename _value, typename ...ctx_var, typename ctx_fun>
-struct Eval<LetIn<var_name, var_value, _value>, Context<VarList<ctx_var...>, ctx_fun>> {
-    typedef typename Eval<_value,
-            Context<
-                    VarList<
-                            VarD<var_name, typename Eval<var_value, Context<VarList<ctx_var...>, ctx_fun>>::value>,
-                            ctx_var...
-                    >,
-                    ctx_fun
-            >
-    >::value value;
-};
-
-template<name_t fun_name, typename ...args> struct Call {};
-
-template <name_t f, typename ...Args> Call<f, Args...> call(Args... args);
-
-template<typename context, typename prev, int count, typename ...args> struct CallVarList {};
-template<typename context, typename prev, int count> struct CallVarList<context, prev, count> {
-    typedef prev list;
-};
-template<typename context, typename ...vars, int count, typename arg, typename ...args>
-struct CallVarList<context, VarList<vars...>, count, arg, args...> {
-    typedef typename CallVarList<context, VarList<vars..., VarD<count, typename Eval<arg, context>::value>>, count + 1, args...>::list list;
-};
-
-template<name_t fun_name, typename ...args, typename var_list, typename fun_list>
-struct Eval<Call<fun_name, args...>, Context<var_list, fun_list>> {
-    typedef typename Eval<
-            typename FindFun<Context<var_list, fun_list>, fun_name>::value,
-            Context<typename CallVarList<Context<var_list, fun_list>, VarList<>, 0, args...>::list, fun_list>
-    >::value value;
-};
-
-template<typename value, typename context> struct EvalCond {};
 
 template<typename cond, typename if_true, typename if_false> struct If {};
 
@@ -113,19 +16,82 @@ template<typename if_true, typename if_false> struct TernaryHelper<false, if_tru
     typedef if_false value;
 };
 
-#define if_(cond) If<__decltype(cond), __decltype_start
-#define else_ __decltype_end, __decltype_start
 
-
-template<typename cond, typename if_true, typename if_false, typename context>
-struct Eval<If<cond, if_true, if_false>, context> {
-    typedef typename Eval<typename TernaryHelper<EvalCond<cond, context>::value, if_true, if_false>::value, context>::value value;
+template<typename cond, typename if_true, typename if_false>
+struct Eval<If<cond, if_true, if_false>> {
+    typedef typename Eval<typename TernaryHelper<EvalCond<cond>::value, if_true, if_false>::value>::value value;
 };
 
 template<typename val>
 struct ConvertToRuntimeValue {};
 
-#define get_runtime(v) ConvertToRuntimeValue<__decltype(v)>::value
+#ifndef NO_DEFINES
+
+#define __decltype_start typename std::remove_cv<decltype(
+#define __decltype_end )>::type
+#define __decltype(v) __decltype_start v __decltype_end
+
+#define eval(v) Eval<__decltype(v)>::value()
+
+#define if_(cond) If<__decltype(cond), __decltype_start
+#define else_ __decltype_end, __decltype_start
+#define end __decltype_end>()
+
+#define get_runtime(v) ConvertToRuntimeValue<Eval<__decltype(v)>::value>::value
+
+#define __CONCATENATE(arg1, arg2)   __CONCATENATE1(arg1, arg2)
+#define __CONCATENATE1(arg1, arg2)  __CONCATENATE2(arg1, arg2)
+#define __CONCATENATE2(arg1, arg2)  arg1##arg2
+
+#define __NARG(...) __NARG1(__VA_ARGS__, __SEQN())
+#define __NARG1(...) __ARGN(__VA_ARGS__)
+#define __ARGN(_1, _2, _3, _4, _5, _6, _7, _8, N, ...) N
+#define __SEQN() 8, 7, 6, 5, 4, 3, 2, 1, 0
+
+#define __MAP0(mapf, sep)
+#define __MAP1(mapf, sep, arg) mapf(arg, 0)
+#define __MAP2(mapf, sep, arg, ...) mapf(arg, 1) sep() __MAP1(mapf, sep, __VA_ARGS__)
+#define __MAP3(mapf, sep, arg, ...) mapf(arg, 2) sep() __MAP2(mapf, sep, __VA_ARGS__)
+#define __MAP4(mapf, sep, arg, ...) mapf(arg, 3) sep() __MAP3(mapf, sep, __VA_ARGS__)
+#define __MAP5(mapf, sep, arg, ...) mapf(arg, 4) sep() __MAP4(mapf, sep, __VA_ARGS__)
+#define __MAP6(mapf, sep, arg, ...) mapf(arg, 5) sep() __MAP5(mapf, sep, __VA_ARGS__)
+#define __MAP7(mapf, sep, arg, ...) mapf(arg, 6) sep() __MAP6(mapf, sep, __VA_ARGS__)
+#define __MAP8(mapf, sep, arg, ...) mapf(arg, 7) sep() __MAP7(mapf, sep, __VA_ARGS__)
+
+#define __SEP_COMMA() ,
+#define __MAP_HELPER(n, mapf, sep, ...) __CONCATENATE(__MAP, n)(mapf, sep, __VA_ARGS__)
+#define __MAP(mapf, sep, ...) __MAP_HELPER(__NARG(__VA_ARGS__), mapf, sep, __VA_ARGS__)
+
+#define __MAP_TYPENAME(v, i) typename __CONCATENATE(__T, i)
+#define __MAP_IDX(v, i) __CONCATENATE(__T, i)
+#define __MAP_CONSTEXPR(v, i) static constexpr auto v = __CONCATENATE(__T, i)();
+
+#define forward_def_fun(name, ...) \
+template<__MAP(__MAP_TYPENAME, __SEP_COMMA, __VA_ARGS__)> struct __ ## name ## _struct; \
+template<__MAP(__MAP_TYPENAME, __SEP_COMMA, __VA_ARGS__)> \
+constexpr __ ## name ## _struct<__MAP(__MAP_IDX, __SEP_COMMA, __VA_ARGS__)>\
+name(__MAP(__MAP_IDX, __SEP_COMMA, __VA_ARGS__));
+
+#define def_fun(name, ...) \
+template<__MAP(__MAP_TYPENAME, __SEP_COMMA, __VA_ARGS__)> struct __ ## name ## _struct {}; \
+template<__MAP(__MAP_TYPENAME, __SEP_COMMA, __VA_ARGS__)> \
+constexpr __ ## name ## _struct<__MAP(__MAP_IDX, __SEP_COMMA, __VA_ARGS__)>\
+name(__MAP(__MAP_IDX, __SEP_COMMA, __VA_ARGS__)) { return {}; } \
+template<__MAP(__MAP_TYPENAME, __SEP_COMMA, __VA_ARGS__)>\
+struct Eval<__ ## name ## _struct<__MAP(__MAP_IDX, __SEP_COMMA, __VA_ARGS__)>> { \
+    __MAP(__MAP_CONSTEXPR, __SEP_COMMA, __VA_ARGS__) \
+    typedef typename Eval<__decltype_start
+
+#define end_fun __decltype_end>::value value; };
+
+#define def_var(name, val) \
+struct __ ## name ## _struct {}; \
+constexpr auto name = __ ## name ## _struct(); \
+template<> struct Eval<__ ## name ## _struct> { \
+    typedef typename Eval<__decltype(val)>::value value; \
+};
+
+#endif
 
 
 #endif //TEMPLATES_H
