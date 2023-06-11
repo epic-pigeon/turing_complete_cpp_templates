@@ -10,11 +10,11 @@ For a quick factorial computation example look into ```main.cpp```.
 Features:
  - recursion
  - variables
- - let in statements
  - conditions
  - any data type potential
+ - no runtime cost
 
 Limitations:
- - variable and function names are ints, can be improved with constants
  - the default compiler's max template recursion depth is 1024, can be increased with flags
- - awkward syntax
+ - weird syntax
+ - you might get fired / expelled
